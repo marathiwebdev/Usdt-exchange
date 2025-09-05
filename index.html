@@ -1,105 +1,255 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>USDT Exchange</title>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>USDT P2P — Demo</title>
+<meta name="description" content="USDT P2P marketplace demo — listings, filters and order panel (static demo)">
+
+<!-- Google font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#0f1724; --card:#0b1220; --muted:#9aa4b2; --accent:#16a34a; --glass: rgba(255,255,255,0.03);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,-apple-system,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,#061020,#061423);color:#e6eef8;}
+  .wrap{max-width:1100px;margin:28px auto;padding:18px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .brand{font-weight:700;font-size:20px;display:flex;align-items:center;gap:10px}
+  .brand .logo{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#0ea5a4,#06b6d4);display:inline-flex;align-items:center;justify-content:center;font-weight:700;color:#012;}
+  .top-actions{display:flex;gap:8px;align-items:center}
+  .btn{background:var(--accent);border:0;padding:8px 12px;border-radius:8px;color:#022;cursor:pointer;font-weight:600}
+  .ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:8px;color:var(--muted)}
+  .main{display:grid;grid-template-columns:360px 1fr;gap:18px;margin-top:18px}
+  .panel{background:var(--card);border-radius:12px;padding:14px;border:1px solid rgba(255,255,255,0.03)}
+  .filters h3{margin:0 0 10px 0;color:#cfe8f7}
+  .field{margin-bottom:10px}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  select,input{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:var(--glass);color:inherit}
+  .list {display:flex;flex-direction:column;gap:10px}
+  .card{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border:1px solid rgba(255,255,255,0.03)}
+  .left{display:flex;gap:12px;align-items:center}
+  .seller{width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,#334155,#0ea5a4);display:flex;align-items:center;justify-content:center;font-weight:700}
+  .meta{font-size:13px}
+  .price{font-weight:700;font-size:16px}
+  .action{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+  .small{font-size:13px;color:var(--muted)}
+  .badge{padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.03);font-size:13px}
+  .order-panel{position:sticky;top:24px}
+  .order-panel h3{margin:0 0 8px 0}
+  .order-row{display:flex;gap:8px;align-items:center}
+  .muted{color:var(--muted)}
+  .market-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .search{display:flex;gap:8px;align-items:center}
+  .search input{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
+  footer{margin-top:18px;color:var(--muted);text-align:center}
+  @media(max-width:980px){
+    .main{grid-template-columns:1fr}
+    .order-panel{position:static}
+  }
+</style>
 </head>
 <body>
-  <h2>Buy / Sell USDT</h2>
+  <div class="wrap">
+    <header>
+      <div class="brand"><span class="logo">U</span> USDT P2P Demo</div>
+      <div class="top-actions">
+        <div class="small muted">Demo copy • Not for production</div>
+        <button class="ghost" id="connectBtn">Connect Wallet</button>
+        <button class="btn" id="sellBtn">Sell USDT</button>
+      </div>
+    </header>
 
-  <form id="orderForm">
-    <label>Type:</label>
-    <select id="side">
-      <option value="buy">Buy</option>
-      <option value="sell">Sell</option>
-    </select><br/><br/>
+    <div class="main">
+      <!-- left filters & listings -->
+      <div class="panel filters">
+        <div class="market-header">
+          <h3 style="margin:0">P2P Orders</h3>
+          <div class="small muted">Live demo</div>
+        </div>
 
-    <label>Amount (USDT):</label>
-    <input type="number" id="amount" required /><br/><br/>
+        <div style="margin-bottom:10px" class="search">
+          <input id="q" placeholder="Search seller or payment method" />
+          <select id="networkFilter" style="width:120px">
+            <option value="all">All nets</option>
+            <option value="TRC20">TRC20</option>
+            <option value="ERC20">ERC20</option>
+            <option value="BEP20">BEP20</option>
+          </select>
+        </div>
 
-    <label>Network:</label>
-    <select id="network">
-      <option value="TRC20">TRC20</option>
-      <option value="ERC20">ERC20</option>
-    </select><br/><br/>
+        <div class="list" id="list">
+          <!-- listing cards inserted by JS -->
+        </div>
 
-    <label>Wallet Address:</label>
-    <input type="text" id="addr" required /><br/><br/>
+        <div style="margin-top:12px" class="small muted">Tip: Click Buy to open order modal.</div>
+      </div>
 
-    <label>Your WhatsApp Number:</label>
-    <input type="text" id="wa" placeholder="91XXXXXXXXXX" required /><br/><br/>
+      <!-- right: order panel / details -->
+      <div>
+        <div class="panel order-panel" id="orderPanel">
+          <h3>Create Order</h3>
+          <div class="field">
+            <label>Type</label>
+            <select id="sideSel">
+              <option value="buy">Buy USDT</option>
+              <option value="sell">Sell USDT</option>
+            </select>
+          </div>
 
-    <button type="submit">Submit Order</button>
-  </form>
+          <div class="field">
+            <label>Amount (USDT)</label>
+            <input id="amountSel" type="number" min="1" placeholder="100" />
+          </div>
 
-  <p id="status"></p>
+          <div class="field">
+            <label>Network</label>
+            <select id="networkSel"><option>TRC20</option><option>ERC20</option><option>BEP20</option></select>
+          </div>
+
+          <div class="field">
+            <label>Payment Method</label>
+            <select id="paySel"><option>UPI</option><option>IMPS</option><option>Bank Transfer</option></select>
+          </div>
+
+          <div class="field">
+            <label>Your WhatsApp (E.164)</label>
+            <input id="mywa" placeholder="+9198XXXXXXXX" />
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn" id="placeBtn">Place Order</button>
+            <button class="ghost" id="resetBtn">Reset</button>
+          </div>
+
+          <div id="statusBox" style="margin-top:10px;color:var(--muted)"></div>
+        </div>
+
+        <!-- market overview -->
+        <div style="height:18px"></div>
+        <div class="panel" style="margin-top:12px">
+          <h4 style="margin:0 0 8px 0">How it works</h4>
+          <ol style="color:var(--muted);padding-left:18px;margin:0">
+            <li>Choose an offer from left or create an order.</li>
+            <li>Make payment using chosen method and upload proof to admin.</li>
+            <li>Admin verifies and releases USDT.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <footer>© Demo • Not real exchange</footer>
+  </div>
 
 <script>
-  // 🔹 Firebase Config (तुझा config टाका)
-  const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "SENDER_ID",
-    appId: "APP_ID"
+/* ---------- Demo data and UI logic ---------- */
+/* This file is a static front-end demo. Replace the data and add your backend (Firestore / API) to make it live. */
+
+const demoOffers = [
+  {id:1,seller:"PayMax",rate:83.50,min:10,max:5000,network:"TRC20",method:"UPI",trust:99,emoji:"PM"},
+  {id:2,seller:"CoinKart",rate:83.70,min:50,max:10000,network:"TRC20",method:"IMPS",trust:95,emoji:"CK"},
+  {id:3,seller:"FastPay",rate:83.30,min:20,max:8000,network:"ERC20",method:"Bank",trust:97,emoji:"FP"},
+  {id:4,seller:"TrustEx",rate:83.60,min:5,max:2000,network:"BEP20",method:"UPI",trust:93,emoji:"TE"},
+  {id:5,seller:"PrimeP2P",rate:83.80,min:100,max:20000,network:"TRC20",method:"UPI",trust:98,emoji:"PP"},
+];
+
+const listEl = document.getElementById('list');
+const qEl = document.getElementById('q');
+const netFilterEl = document.getElementById('networkFilter');
+
+function renderList(){
+  const q = qEl.value.trim().toLowerCase();
+  const net = netFilterEl.value;
+  listEl.innerHTML = '';
+  const out = demoOffers.filter(o => {
+    if(net !== 'all' && o.network !== net) return false;
+    if(!q) return true;
+    return o.seller.toLowerCase().includes(q) || o.method.toLowerCase().includes(q);
+  });
+  if(out.length===0){
+    listEl.innerHTML = `<div style="color:var(--muted);padding:10px">No offers found</div>`;
+    return;
+  }
+  out.forEach(o=>{
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="left">
+        <div class="seller">${o.emoji}</div>
+        <div>
+          <div class="meta">
+            <div style="display:flex;gap:8px;align-items:center">
+              <div class="price">${o.rate} ₹</div>
+              <div class="small muted">/USDT</div>
+            </div>
+            <div style="margin-top:6px;font-size:13px">
+              <strong>${o.seller}</strong> • <span class="small">${o.method}</span>
+            </div>
+            <div class="small muted">Limit: ${o.min} - ${o.max} USDT • ${o.network}</div>
+          </div>
+        </div>
+      </div>
+      <div class="action">
+        <div class="badge">${o.trust}%</div>
+        <button class="btn" data-id="${o.id}" data-seller="${o.seller}" data-rate="${o.rate}" onclick="openOffer(this)">Buy</button>
+      </div>
+    `;
+    listEl.appendChild(card);
+  });
+}
+
+// open an offer into order panel
+function openOffer(btn){
+  const seller = btn.getAttribute('data-seller');
+  const rate = btn.getAttribute('data-rate');
+  document.getElementById('sideSel').value = 'buy';
+  document.getElementById('statusBox').innerText = `Selected seller: ${seller} • Rate: ${rate} ₹/USDT`;
+}
+
+// filters
+qEl.addEventListener('input', renderList);
+netFilterEl.addEventListener('change', renderList);
+
+// place order (demo - stores to browser localStorage and shows mock success)
+document.getElementById('placeBtn').addEventListener('click', async () => {
+  const side = document.getElementById('sideSel').value;
+  const amount = Number(document.getElementById('amountSel').value);
+  const network = document.getElementById('networkSel').value;
+  const pay = document.getElementById('paySel').value;
+  const wa = document.getElementById('mywa').value.trim();
+
+  if(!amount || amount <= 0){ alert('Enter valid amount'); return; }
+  if(!wa){ alert('Enter WhatsApp number'); return; }
+
+  // demo order object
+  const order = {
+    id: 'ORD' + Date.now(),
+    side, amount, network, pay, wa, createdAt: new Date().toISOString()
   };
 
-  // 🔹 Firebase Init
-  const app = firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+  // store to localStorage (demo) — replace with Firestore / API call
+  const existing = JSON.parse(localStorage.getItem('demoOrders') || '[]');
+  existing.unshift(order);
+  localStorage.setItem('demoOrders', JSON.stringify(existing));
 
-  // 🔹 WhatsApp Config (तुझा Token व Phone ID टाका)
-  const WHATSAPP_TOKEN = "YOUR_PERMANENT_ACCESS_TOKEN";
-  const WHATSAPP_PHONE_ID = "YOUR_PHONE_NUMBER_ID";
-  const ALERT_TO = "91XXXXXXXXXX"; // तुझा WhatsApp नंबर
+  document.getElementById('statusBox').innerText = '✅ Order placed (demo). Check Admin to complete the trade.';
 
-  async function sendWhatsApp(body) {
-    const url = `https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Authorization": "Bearer " + WHATSAPP_TOKEN,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: ALERT_TO,
-        type: "text",
-        text: { body }
-      })
+  // Demo: also pop a browser notification (user must allow)
+  if(Notification.permission === 'granted'){
+    new Notification('New USDT Order', {body:`${side} ${amount} USDT — ${network}`});
+  } else if(Notification.permission !== 'denied'){
+    Notification.requestPermission().then(p => {
+      if(p==='granted') new Notification('New USDT Order', {body:`${side} ${amount} USDT — ${network}`});
     });
-    return res.json();
   }
 
-  // 🔹 Order Form Submit
-  document.getElementById("orderForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const side = document.getElementById("side").value;
-    const amount = document.getElementById("amount").value;
-    const network = document.getElementById("network").value;
-    const addr = document.getElementById("addr").value;
-    const wa = document.getElementById("wa").value;
+  // In production: call your backend to save order and trigger WhatsApp via server.
+});
 
-    const order = { side, amount, network, addr, wa, createdAt: new Date() };
-
-    try {
-      // Firestore save
-      await db.collection("orders").add(order);
-
-      // WhatsApp Alert
-      const msg = `📢 NEW USDT ORDER\nType: ${side}\nAmount: ${amount} USDT\nNetwork: ${network}\nWallet: ${addr}\nUser WA: ${wa}`;
-      await sendWhatsApp(msg);
-
-      document.getElementById("status").innerText = "✅ Order placed & notification sent!";
-    } catch (err) {
-      console.error(err);
-      document.getElementById("status").innerText = "❌ Error: " + err.message;
-    }
-  });
+// init UI
+renderList();
 </script>
 </body>
 </html>
